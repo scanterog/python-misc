@@ -1,0 +1,99 @@
+=======
+README
+=======
+
+API for in-memory query engine:
+
+=> API: HTTP get and post
+=> Transactions:
+ * Store an object. An object consists of an identifier (an arbitrary string) and a list of numeric ranges. Example:
+   {”identifier”: ”foo”, ”ranges”: [[12,34],[37,440],[460,800]]}
+ * If an object already exists with the same identifier, overwrite it. Retrieve a list of objects whose ranges overlap a specified range. Example:
+   Request: [440,464]
+   Response: [{”identifier”: ”foo”,”ranges”:[[37,440],[460,800]],”intersection”:6}] 
+   (because [440,464] overlaps [37,440] by 1 position and [460,800] by 5 positions)
+
+
+#######################
+# How to run the code #
+#######################
+
+The program was written with python and the Flask microframework (http://flask.pocoo.org/).
+In order to run the code, Flask must be installed. This can be done executing:
+
+$ pip install Flask
+
+Alternatively, the developer can also create a python virtualenv:
+
+$ mkdir venv
+$ virtualenv venv
+$ . venv/bin/activate
+(venv) pip install flask
+
+Once flask is installed, execute:
+
+(venv) $ python server.py
+ * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+
+The HTTP server will run on the localhost interface and port 5000.
+
+###########
+#   API   #
+###########
+
+The API has been written following the REST architectural style.
+All data is sent and received as JSON.
+
+The Query Engine (qengine) will use HTTP methods (verbs) as follows:
+-----------------------------------------------------------------------------------------------------------------------
+HTTP verb |   Action                         |                               URL                                       |
+-----------------------------------------------------------------------------------------------------------------------
+POST      | Store an object                  | http://127.0.0.1:5000/qengine/api/v1.0/objects                          |
+-----------------------------------------------------------------------------------------------------------------------
+GET       | Retrieve all objects             | http://127.0.0.1:5000/qengine/api/v1.0/objects                          |
+-----------------------------------------------------------------------------------------------------------------------
+GET       | Retrieve a list of objects whose |                                                                         |
+          | ranges overlap a specified range | http://127.0.0.1:5000/qengine/api/v1.0/objects/<start_range>/<end_range>|
+-----------------------------------------------------------------------------------------------------------------------
+
+The qengine API can be tested with CURL as follow:
+
+* Store an object (using POST and application/json as Content-Type)
+
+$ curl -i -H "Content-Type: application/json" -X POST -d '{"identifier": "foo", "ranges": "[[12,34],[37,440],[460,800]]"}' http://localhost:5000/qengine/api/v1.0/objects
+
+where:
+-i: include the HTTP-header in the output.
+-H: specify request headers e.g. "Content-type: application/json".
+-X: specify HTTP request method e.g. POST.
+-d: sends the specified data in a POST request to the HTTP server.
+
+* Retrieve all objects
+
+$ curl -i http://127.0.0.1:5000/qengine/api/v1.0/objects
+
+* Retrieve a list of objects whose ranges overlap a specified range
+
+For the range [450,464], the request is done as follows:
+
+$ curl -i http://127.0.0.1:5000/qengine/api/v1.0/objects/450/464
+
+#############
+#  test.py  #
+#############
+
+The file "test.py" has some common test cases in order to validate the software.
+These tests have been written using the unittest module. These are:
+* Storing of a valid object
+* Storing of an object with empty attributes (identifier and/or range)
+* Malformed requests (identifier not a string, invalid ranges, invalid object attributes)
+* Overwriting of an object
+* Retrieval of a valid overlapped object
+
+################
+# Observations #
+################
+
+The problem defines that [450,464] overlaps [460,800] by 4 position.
+This means that the final endpoint of the interval is not included (open interval).
+The software has been written following this principle.
